@@ -9,6 +9,8 @@ RUN apk add --no-cache \
     libxml2-dev \
     oniguruma-dev \
     zlib-dev \
+    mysql-client \
+    mariadb-client \
     && docker-php-ext-install \
     gd \
     zip \
@@ -16,7 +18,9 @@ RUN apk add --no-cache \
     mbstring \
     dom \
     xml \
-    bcmath
+    bcmath \
+    pdo \
+    pdo_mysql
 
 # Crear directorios necesarios
 RUN mkdir -p /run/nginx
