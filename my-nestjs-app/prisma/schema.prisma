@@ -1,0 +1,659 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== USUARIOS Y PERMISOS ==========
+
+model User {
+  id               String    @id @default(cuid())
+  firstname        String
+  lastname         String
+  username         String    @unique
+  email            String    @unique
+  password         String
+  phone            String
+  status           Int       @default(1)
+  avatar           String?   @default("no_avatar.png")
+  documentNumber   String
+  address          String
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime? @map("deleted_at")
+
+  // Relaciones
+  roleUsers         RoleUser[]
+  purchases         Purchase[]
+  purchaseUsers     PurchaseUser[]
+  paymentPurchases  PaymentPurchase[]
+  sales             Sale[]
+  quotations        Quotation[]
+  paymentSales      PaymentSale[]
+  orders            Order[]
+  agendaAssignments AgendaAssignment[]
+  createdAgendas    Agenda[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Role {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  label       String?
+  description String?
+  status      Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? @map("deleted_at")
+
+  // Relaciones
+  roleUsers       RoleUser[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  label       String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RoleUser {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+  @@map("role_users")
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  // Relaciones
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ========== AGENDA ==========
+model Agenda {
+  id                String             @id @default(uuid())
+  date              DateTime
+  time              String
+  description       String
+  status            String             @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  notes             String?
+  createdById       String
+  createdBy         User               @relation(fields: [createdById], references: [id])
+  agendaAssignments AgendaAssignment[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model AgendaAssignment {
+  id        String   @id @default(uuid())
+  agendaId  String
+  userId    String
+  agenda    Agenda   @relation(fields: [agendaId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([agendaId, userId])
+}
+
+// ========== COMPRAS ==========
+
+model Purchase {
+  id            String    @id @default(cuid())
+  date          DateTime?
+  ref           String?
+  providerId    String
+  total         Decimal   @db.Decimal(10, 2)
+  taxRate       Float
+  shipping      Float
+  discount      Float
+  notes         String    @db.Text
+  taxNet        Float
+  paidAmount    Float
+  paymentStatus String    @default("PENDING")
+  status        Int       @default(1)
+  grandTotal    Float
+  paymentType   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // Relaciones
+  provider         Provider          @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  details          PurchaseDetail[]
+  facture          PaymentPurchase[]
+  products         PurchaseProduct[]
+  purchaseUsers    PurchaseUser[]
+  userId           String
+  user             User              @relation(fields: [userId], references: [id])
+  PurchaseProvider PurchaseProvider?
+
+  @@index([userId])
+  @@index([providerId])
+  @@map("purchases")
+}
+
+// ========== DETALLE DE COMPRAS ==========
+model PurchaseDetail {
+  id               String   @id @default(cuid())
+  purchaseId       String
+  purchaseUnitId   String?
+  quantity         Int      @default(1)
+  productId        String
+  total            Decimal  @db.Decimal(10, 2)
+  productVariantId String?
+  price            Decimal  @db.Decimal(10, 2)
+  taxNet           Float
+  discount         Float
+  discountMethod   String
+  taxMethod        String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now())
+
+  // Relaciones
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@index([purchaseId])
+  @@index([productId])
+  @@map("purchase_details")
+}
+
+// ========== COMPRAS POR USUARIOS ==========
+model PurchaseUser {
+  id         String   @id @default(cuid())
+  userId     String
+  purchaseId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  // Relaciones
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, purchaseId])
+  @@index([purchaseId])
+  @@map("purchase_users")
+}
+
+// ========== COMPRAS POR PRODUCTO ==========
+
+model PurchaseProduct {
+  id              String   @id @default(cuid())
+  purchaseId      String
+  productId       String
+  quantity        Int      @default(1)
+  priceAtPurchase Decimal  @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  // Relaciones
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@index([purchaseId])
+  @@index([productId])
+  @@map("purchase_products")
+}
+
+// ========== COMPRAS POR PROVEEDOR ==========
+model PurchaseProvider {
+  id         String   @id @default(cuid())
+  purchaseId String   @unique
+  providerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  // Relaciones
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseId, providerId])
+  @@index([providerId])
+  @@map("purchase_providers")
+}
+
+// ========== PROVEEDORES ==========
+model Provider {
+  id          String   @id @default(cuid())
+  name        String
+  code        Int
+  email       String   @unique
+  phone       String
+  country     String?
+  city        String?
+  address     String
+  status      Int      @default(1)
+  contactName String?
+  taxNumber   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  // Relaciones
+  purchases        Purchase[]
+  purchaseProvider PurchaseProvider[]
+
+  @@index([email])
+  @@map("providers")
+}
+
+// ========== PAGOS COMPRAS ==========
+model PaymentPurchase {
+  id         String   @id @default(cuid())
+  purchaseId String
+  amount     Float
+  charge     Float
+  ref        String
+  reglement  String
+  userId     String
+  date       DateTime
+  notes      String
+  accountId  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  // Relaciones
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account  Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+  @@map("payment_purchases")
+}
+
+// ========== PRODCUTOS ==========
+model Product {
+  id             String   @id @default(cuid())
+  code           String?
+  typeBarcode    String?
+  name           String?
+  cost           Decimal  @db.Decimal(10, 2)
+  price          Decimal  @db.Decimal(10, 2)
+  unitId         String?
+  unitSaleId     String?
+  unitPurchaseId String?
+  stockAlert     Float
+  categoryId     String
+  subCategoryId  String?
+  isVariant      Int
+  isImei         Int
+  taxMethod      String
+  image          String
+  brandId        String?
+  isActive       Int
+  note           String   @db.Text
+  type           String
+  stock          Int      @default(0)
+  sku            String
+  status         Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  // Relaciones
+  category         Category?         @relation(fields: [categoryId], references: [id])
+  unit             Unit?             @relation(name: "unitProduct", fields: [unitId], references: [id], map: "fk_product_unit")
+  unitSale         Unit?             @relation(name: "unitProdcutSale", fields: [unitSaleId], references: [id], map: "fk_product_unit_sale")
+  unitPurchase     Unit?             @relation(name: "unitPurchaseProduct", fields: [unitPurchaseId], references: [id], map: "fk_product_unit_purchase")
+  brand            Brand?            @relation(fields: [brandId], references: [id], map: "fk_product_brand")
+  purchaseProducts PurchaseProduct[]
+  PurchaseDetail   PurchaseDetail[]
+  CategoryProduct  CategoryProduct[]
+  ProductVariant   ProductVariant?
+  SaleDetail       SaleDetail[]
+  QuotationDetail  QuotationDetail[]
+  OrderDetail      OrderDetail[]
+
+  @@index([sku])
+  @@map("products")
+}
+
+// ========== CUENTAS ==========
+model Account {
+  id             String   @id @default(cuid())
+  accountNumber  String
+  accountName    String
+  initialBalance Float
+  balance        Float
+  notes          String?
+  type           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now())
+
+  // Relaciones
+  payments     PaymentPurchase[]
+  paymentSales PaymentSale[]
+
+  @@map("accounts")
+}
+
+// ========== CATEGORIA DE PRODUCTOS ==========
+model CategoryProduct {
+  id         String   @id @default(cuid())
+  productId  String
+  categoryId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  // Relaciones
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([categoryId])
+  @@map("category_products")
+}
+
+// ========== CATEGORIAS ==========
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String?
+  description String?  @db.Text
+  type        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  // Relaciones
+  products CategoryProduct[]
+  Product  Product[]
+
+  @@map("categories")
+}
+
+// ========== UNIDADES ==========
+model Unit {
+  id            String   @id @default(cuid())
+  name          String
+  shortName     String
+  baseUnit      Int
+  operator      String
+  operatorValue Float
+  status        Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+
+  // Relaciones
+  products        Product[] @relation("unitProduct")
+  productPurchase Product[] @relation("unitPurchaseProduct")
+  productSale     Product[] @relation("unitProdcutSale")
+
+  @@map("units")
+}
+
+// ========== MARCA ==========
+model Brand {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  image       String
+  deleted_at  DateTime?
+
+  products Product[]
+
+  @@map("brands")
+}
+
+// ========== VARIANTES DE PRODUCTOS ==========
+model ProductVariant {
+  id        String @id @default(cuid())
+  name      String @unique
+  qty       Float
+  cost      Float
+  price     Float
+  code      String
+  image     String
+  productId String @unique
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_variants")
+}
+
+// ========== DETALLES VENTAS ==========
+model SaleDetail {
+  id               String   @id @default(cuid())
+  date             DateTime
+  saleId           String
+  saleUnitId       String
+  quantity         Float
+  productId        String
+  total            Float
+  productVariantId String
+  price            Float
+  TaxNet           Float
+  discount         Float
+  discountMethod   String
+  taxMethod        String
+
+  sale    Sale    @relation(fields: [saleId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_details")
+}
+
+// ========== DETALLE COTIZACIONES ==========
+model QuotationDetail {
+  id             String  @id @default(cuid())
+  productId      String
+  quotationId    String
+  quantity       Float
+  unitPrice      Float // precio unitario
+  subtotal       Float // cantidad * precio unitario
+  netValue       Float // valor sin impuestos ni descuentos
+  brand          String? // marca del producto, si aplica
+  discount       Float
+  discountMethod String
+  taxNet         Float
+  taxMethod      String
+  adminExpenses  Float // gastos administrativos
+  profit         Float // utilidad
+  total          Float
+
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@map("quotation_details")
+}
+
+// ========== VENTAS ==========
+model Sale {
+  id             String    @id @default(cuid())
+  date           DateTime
+  ref            String
+  isPos          Int
+  clientId       String
+  grandTotal     Float
+  qteRetturn     Float
+  taxNet         Float
+  taxRate        Float
+  notes          String?
+  totalReturn    Float
+  warehouseId    String
+  userId         String
+  status         String
+  discount       Float
+  shipping       Float
+  paidAmount     Float
+  paymentStatus  String
+  shippingStatus String
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @default(now())
+  deleted_at     DateTime?
+
+  user    User          @relation(fields: [userId], references: [id])
+  details SaleDetail[]
+  client  Client        @relation(fields: [clientId], references: [id])
+  facture PaymentSale[]
+  orderId String?       @unique
+  order   Order?
+
+  @@map("sales")
+}
+
+// ========== COTIZACIONES ==========
+
+model Quotation {
+  id            String    @id @default(cuid())
+  date          DateTime
+  productId     String
+  ref           String?
+  clientId      String
+  grandTotal    Float
+  warehouseId   String
+  userId        String
+  status        String
+  notes         String?
+  discount      Float
+  shipping      Float
+  taxNet        Float
+  taxRate       Float
+  adminExpenses Float // gastos administrativos
+  profit        Float? // utilidad
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @default(now())
+  deleted_at    DateTime?
+
+  user    User              @relation(fields: [userId], references: [id])
+  details QuotationDetail[]
+  client  Client            @relation(fields: [clientId], references: [id])
+  orders  Order[]
+
+  @@map("quotations")
+}
+
+// ========== PAGOS VENTAS ==========
+model PaymentSale {
+  id        String   @id @default(cuid())
+  saleId    String
+  amount    Float
+  charge    Float
+  ref       String
+  reglement String
+  userId    String
+  date      DateTime
+  notes     String
+  accountId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  // Relaciones
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@map("payment_sales")
+}
+
+// ========== CLIENTES ==========
+model Client {
+  id        String    @id @default(cuid())
+  name      String
+  code      Int
+  adress    String
+  email     String
+  phone     String
+  country   String
+  city      String
+  taxNumber String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relaciones
+  sales      Sale[]
+  quotations Quotation[]
+  Order      Order[]
+
+  @@index([email])
+  @@map("clients")
+}
+
+// ========== PEDIDOS ==========
+model Order {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  ref         String   @unique
+  clientId    String
+  quotationId String? // Opcional si el pedido proviene de una cotización
+  status      String
+  notes       String?
+  total       Float
+  taxNet      Float
+  taxRate     Float
+  discount    Float
+  shipping    Float
+  grandTotal  Float
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  client    Client        @relation(fields: [clientId], references: [id])
+  quotation Quotation?    @relation(fields: [quotationId], references: [id])
+  details   OrderDetail[]
+  sale      Sale?         @relation(fields: [id], references: [orderId], map: "Sale_Order")
+  user      User          @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+// ========== DETALLE DE PEDIDOS ==========
+model OrderDetail {
+  id               String  @id @default(cuid())
+  orderId          String
+  productId        String
+  quantity         Float
+  price            Float
+  total            Float
+  taxNet           Float
+  discount         Float
+  discountMethod   String
+  taxMethod        String
+  productVariantId String?
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_details")
+}
