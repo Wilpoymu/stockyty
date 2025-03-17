@@ -11,11 +11,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private configService: ConfigService,
   ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
-    
+
     if (!jwtSecret) {
       throw new Error('JWT_SECRET is not defined in environment variables');
     }
-    
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -41,7 +41,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // Transform roleUsers to a simpler roles array for easier checking
-    const roles = user.roleUsers.map(ru => ru.role.name);
+    const roles = user.roleUsers.map((ru) => ru.role.name);
 
     return {
       id: user.id,

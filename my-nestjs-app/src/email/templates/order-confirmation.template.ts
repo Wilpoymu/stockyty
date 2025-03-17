@@ -1,5 +1,11 @@
 /* eslint-disable */
-export function orderConfirmationTemplate(firstname: string, orderNumber: string, orderDetails: string, orderTotal: string, trackingLink: string): string {
+export function orderConfirmationTemplate(
+  firstname: string,
+  orderNumber: string,
+  orderDetails: string,
+  orderTotal: string,
+  trackingLink: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>

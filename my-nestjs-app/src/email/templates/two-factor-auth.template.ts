@@ -1,5 +1,9 @@
 /* eslint-disable */
-export function twoFactorAuthTemplate(firstname: string, verificationCode: string, expirationTime: string): string {
+export function twoFactorAuthTemplate(
+  firstname: string,
+  verificationCode: string,
+  expirationTime: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>

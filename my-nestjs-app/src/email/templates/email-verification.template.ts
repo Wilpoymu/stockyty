@@ -1,5 +1,8 @@
 /* eslint-disable */
-export function emailVerificationTemplate(firstname: string, verificationLink: string): string {
+export function emailVerificationTemplate(
+  firstname: string,
+  verificationLink: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>

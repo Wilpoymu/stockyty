@@ -36,10 +36,12 @@ export class AgendaController {
   @UseGuards(RolesGuard)
   @Roles('ADMIN', 'MANAGER')
   create(@Body() createAgendaDto: CreateAgendaDto, @Request() req) {
-    this.logger.debug(`User trying to create agenda: ${JSON.stringify({
-      id: req.user.id,
-      roles: req.user.roles
-    })}`);
+    this.logger.debug(
+      `User trying to create agenda: ${JSON.stringify({
+        id: req.user.id,
+        roles: req.user.roles,
+      })}`,
+    );
     return this.agendaService.create(createAgendaDto, req.user.id);
   }
 
@@ -123,18 +125,20 @@ export class AgendaController {
 
   @Get('check-auth')
   checkAuth(@Request() req) {
-    this.logger.debug(`User auth check: ${JSON.stringify({
-      id: req.user.id,
-      roles: req.user.roles,
-      roleUsers: req.user.roleUsers
-    })}`);
+    this.logger.debug(
+      `User auth check: ${JSON.stringify({
+        id: req.user.id,
+        roles: req.user.roles,
+        roleUsers: req.user.roleUsers,
+      })}`,
+    );
     return {
       message: 'You are authenticated',
       user: {
         id: req.user.id,
         email: req.user.email,
-        roles: req.user.roles
-      }
+        roles: req.user.roles,
+      },
     };
   }
 }

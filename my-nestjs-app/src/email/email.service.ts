@@ -8,23 +8,26 @@ export class EmailService {
 
   constructor(
     @Inject('EMAIL_TRANSPORTER') private transporter: nodemailer.Transporter,
-    private configService: ConfigService
+    private configService: ConfigService,
   ) {}
 
   async sendMail(to: string, subject: string, html: string) {
     const mailOptions = {
-      from: this.configService.get<string>('EMAIL_FROM') || this.configService.get<string>('EMAIL_USER'),
+      from:
+        this.configService.get<string>('EMAIL_FROM') ||
+        this.configService.get<string>('EMAIL_USER'),
       to,
       subject,
       html,
     };
-    
+
     try {
       const info = await this.transporter.sendMail(mailOptions);
       this.logger.log(`Email enviado a ${to}: ${info.messageId}`);
       return info;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Error desconocido';
       this.logger.error(`Error al enviar email a ${to}: ${errorMessage}`);
       throw new Error(`No se pudo enviar el correo: ${errorMessage}`);
     }
@@ -36,7 +39,8 @@ export class EmailService {
       this.logger.log('Conexión SMTP verificada correctamente');
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Error desconocido';
       this.logger.error(`Error al verificar la conexión SMTP: ${errorMessage}`);
       return false;
     }

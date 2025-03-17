@@ -6,6 +6,6 @@ import { PrismaService } from '../prisma/prisma.service';
 @Module({
   controllers: [AgendaController],
   providers: [AgendaService, PrismaService],
-  exports: [AgendaService]
+  exports: [AgendaService],
 })
 export class AgendaModule {}

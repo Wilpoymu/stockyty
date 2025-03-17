@@ -1,5 +1,10 @@
 /* eslint-disable */
-export function accountUpdateTemplate(firstname: string, updateType: string, updateDetails: string, accountLink: string): string {
+export function accountUpdateTemplate(
+  firstname: string,
+  updateType: string,
+  updateDetails: string,
+  accountLink: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>

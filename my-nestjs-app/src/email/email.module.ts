@@ -16,15 +16,18 @@ export class EmailModule {
           useFactory: (configService: ConfigService) => {
             return nodemailer.createTransport({
               host: configService.get<string>('EMAIL_HOST'),
-              port: parseInt(configService.get<string>('EMAIL_PORT') || '587', 10),
+              port: parseInt(
+                configService.get<string>('EMAIL_PORT') || '587',
+                10,
+              ),
               secure: configService.get<string>('EMAIL_SECURE') === 'true',
               auth: {
                 user: configService.get<string>('EMAIL_USER'),
                 pass: configService.get<string>('EMAIL_PASSWORD'),
               },
-              ...(configService.get<string>('EMAIL_TLS') === 'true' 
-                ? { requireTLS: true } 
-                : {})
+              ...(configService.get<string>('EMAIL_TLS') === 'true'
+                ? { requireTLS: true }
+                : {}),
             });
           },
         },

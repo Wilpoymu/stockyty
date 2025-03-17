@@ -1,5 +1,8 @@
 /* eslint-disable */
-export function recoveryPasswordTemplate(firstname: string, resetLink: string): string {
+export function recoveryPasswordTemplate(
+  firstname: string,
+  resetLink: string,
+): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>

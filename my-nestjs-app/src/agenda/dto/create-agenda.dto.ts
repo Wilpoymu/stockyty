@@ -1,4 +1,12 @@
-import { IsDate, IsString, IsOptional, IsArray, IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
+import {
+  IsDate,
+  IsString,
+  IsOptional,
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum AgendaStatus {

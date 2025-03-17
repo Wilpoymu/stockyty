@@ -52,7 +52,9 @@ export class AuthService {
 
     // Verificar si el email está confirmado
     if (!user.isEmailVerified) {
-      throw new UnauthorizedException('Email no verificado. Por favor verifique su correo electrónico.');
+      throw new UnauthorizedException(
+        'Email no verificado. Por favor verifique su correo electrónico.',
+      );
     }
 
     // Return user without password - use an underscore to indicate intentionally unused variable
@@ -175,12 +177,21 @@ export class AuthService {
       });
 
       // Enviar email de verificación
-      await this.sendEmailVerification(user.id, firstname, email, verificationToken);
+      await this.sendEmailVerification(
+        user.id,
+        firstname,
+        email,
+        verificationToken,
+      );
 
       // También enviar email de bienvenida
       const welcomeLink = `${process.env.FRONTEND_URL}/login`;
       const welcomeHtml = welcomeTemplate(firstname, welcomeLink);
-      await this.emailService.sendMail(email, '¡Bienvenido a nuestra plataforma!', welcomeHtml);
+      await this.emailService.sendMail(
+        email,
+        '¡Bienvenido a nuestra plataforma!',
+        welcomeHtml,
+      );
 
       // No devolvemos la contraseña - use underscore for unused variable
       const { password: _, ...result } = user;
@@ -195,11 +206,20 @@ export class AuthService {
   }
 
   // Método privado para enviar el email de verificación
-  private async sendEmailVerification(userId: string, firstname: string, email: string, token: string) {
+  private async sendEmailVerification(
+    userId: string,
+    firstname: string,
+    email: string,
+    token: string,
+  ) {
     try {
       const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
       const html = emailVerificationTemplate(firstname, verificationLink);
-      await this.emailService.sendMail(email, 'Verificación de Correo Electrónico', html);
+      await this.emailService.sendMail(
+        email,
+        'Verificación de Correo Electrónico',
+        html,
+      );
     } catch (error) {
       console.error('Error sending verification email:', error);
     }
@@ -258,7 +278,12 @@ export class AuthService {
       },
     });
 
-    await this.sendEmailVerification(userId, user.firstname, user.email, verificationToken);
+    await this.sendEmailVerification(
+      userId,
+      user.firstname,
+      user.email,
+      verificationToken,
+    );
 
     return { message: 'Email de verificación enviado' };
   }
@@ -271,11 +296,17 @@ export class AuthService {
 
     if (!user) {
       // Por seguridad, no revelamos si el email existe o no
-      return { message: 'Si el correo existe y no está verificado, recibirá instrucciones para la verificación' };
+      return {
+        message:
+          'Si el correo existe y no está verificado, recibirá instrucciones para la verificación',
+      };
     }
 
     if (user.isEmailVerified) {
-      return { message: 'Si el correo existe y no está verificado, recibirá instrucciones para la verificación' };
+      return {
+        message:
+          'Si el correo existe y no está verificado, recibirá instrucciones para la verificación',
+      };
     }
 
     // Generar nuevo token
@@ -290,9 +321,17 @@ export class AuthService {
       },
     });
 
-    await this.sendEmailVerification(user.id, user.firstname, user.email, verificationToken);
+    await this.sendEmailVerification(
+      user.id,
+      user.firstname,
+      user.email,
+      verificationToken,
+    );
 
-    return { message: 'Si el correo existe y no está verificado, recibirá instrucciones para la verificación' };
+    return {
+      message:
+        'Si el correo existe y no está verificado, recibirá instrucciones para la verificación',
+    };
   }
 
   async validateToken(token: string) {
