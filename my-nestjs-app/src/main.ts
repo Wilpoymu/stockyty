@@ -20,12 +20,12 @@ async function bootstrap() {
   await seedPermissionsIfNotExist();
   const app = await NestFactory.create(AppModule);
 
-  // Add global validation pipe for DTOs
+  // Modify validation pipe to accept properties in DTOs without decorators
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Strip properties not in DTO
+      whitelist: false, // Don't strip properties not in DTO
       transform: true, // Enable automatic transformation
-      forbidNonWhitelisted: true, // Throw error on non-whitelisted properties
+      forbidNonWhitelisted: false, // Don't throw errors on non-whitelisted properties
     }),
   );
 

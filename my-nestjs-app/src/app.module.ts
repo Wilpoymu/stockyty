@@ -14,6 +14,7 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AgendaModule } from './agenda/agenda.module';
+import { EmailModule } from './email/email.module';
 
 /**
  * @module AppModule
@@ -32,6 +33,7 @@ import { AgendaModule } from './agenda/agenda.module';
     PermissionsModule,
     AuthModule,
     AgendaModule,
+    EmailModule.register(), // Utiliza el método register en lugar de importación directa
   ],
   controllers: [AppController],
   providers: [
