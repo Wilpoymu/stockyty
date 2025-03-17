@@ -7,6 +7,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './auth.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UsersService } from '../users/users.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UsersService } from '../users/users.service';
       secret: process.env.JWT_SECRET || 'secretkey',
       signOptions: { expiresIn: '24h' },
     }),
+    EmailModule.register(), // Cambia esta línea para usar .register()
   ],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService],

@@ -11,12 +11,17 @@ import { comparePassword, hashPassword } from '../utils/bcrypt.util';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { randomBytes } from 'crypto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { EmailService } from '../email/email.service';
+import { recoveryPasswordTemplate } from '../email/templates/recovery-password.template';
+import { emailVerificationTemplate } from '../email/templates/email-verification.template';
+import { welcomeTemplate } from '../email/templates/welcome.template';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
   async validateUser(
@@ -43,6 +48,11 @@ export class AuthService {
 
     if (user.status !== 1) {
       throw new UnauthorizedException('Usuario inactivo');
+    }
+
+    // Verificar si el email está confirmado
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException('Email no verificado. Por favor verifique su correo electrónico.');
     }
 
     // Return user without password - use an underscore to indicate intentionally unused variable
@@ -134,19 +144,26 @@ export class AuthService {
       // Hashear la contraseña
       const hashedPassword = await hashPassword(password);
 
-      // Crear el usuario
+      // Generar token de verificación
+      const verificationToken = randomBytes(32).toString('hex');
+      const verificationTokenExpiry = new Date(Date.now() + 24 * 3600000); // 24 horas
+
+      // Crear el usuario - ensure email is stored in lowercase
       const user = await this.prisma.user.create({
         data: {
           firstname,
           lastname,
           username,
-          email,
+          email: email.toLowerCase(), // Store email in lowercase for consistent comparison
           password: hashedPassword,
           phone,
           status,
           avatar,
           documentNumber,
           address,
+          isEmailVerified: false,
+          emailVerificationToken: verificationToken,
+          emailVerificationTokenExpiry: verificationTokenExpiry,
           roleUsers: {
             create: {
               role: {
@@ -157,9 +174,16 @@ export class AuthService {
         },
       });
 
+      // Enviar email de verificación
+      await this.sendEmailVerification(user.id, firstname, email, verificationToken);
+
+      // También enviar email de bienvenida
+      const welcomeLink = `${process.env.FRONTEND_URL}/login`;
+      const welcomeHtml = welcomeTemplate(firstname, welcomeLink);
+      await this.emailService.sendMail(email, '¡Bienvenido a nuestra plataforma!', welcomeHtml);
+
       // No devolvemos la contraseña - use underscore for unused variable
       const { password: _, ...result } = user;
-      // Remove the void statement which is now unnecessary
       return result;
     } catch (error) {
       if (error instanceof Error) {
@@ -168,6 +192,107 @@ export class AuthService {
         throw new BadRequestException('An unexpected error occurred.');
       }
     }
+  }
+
+  // Método privado para enviar el email de verificación
+  private async sendEmailVerification(userId: string, firstname: string, email: string, token: string) {
+    try {
+      const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+      const html = emailVerificationTemplate(firstname, verificationLink);
+      await this.emailService.sendMail(email, 'Verificación de Correo Electrónico', html);
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+    }
+  }
+
+  // Método para verificar el email
+  async verifyEmail(token: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        emailVerificationToken: token,
+        emailVerificationTokenExpiry: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Token inválido o expirado');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+        emailVerificationToken: '',
+        emailVerificationTokenExpiry: null,
+      },
+    });
+
+    return { message: 'Correo electrónico verificado con éxito' };
+  }
+
+  // Método para enviar email de verificación (para usuarios autenticados)
+  async sendVerificationEmail(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    if (user.isEmailVerified) {
+      return { message: 'El correo electrónico ya está verificado' };
+    }
+
+    // Generar nuevo token
+    const verificationToken = randomBytes(32).toString('hex');
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 3600000); // 24 horas
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerificationToken: verificationToken,
+        emailVerificationTokenExpiry: verificationTokenExpiry,
+      },
+    });
+
+    await this.sendEmailVerification(userId, user.firstname, user.email, verificationToken);
+
+    return { message: 'Email de verificación enviado' };
+  }
+
+  // Método para reenviar email de verificación (sin estar autenticado)
+  async resendVerificationEmail(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Por seguridad, no revelamos si el email existe o no
+      return { message: 'Si el correo existe y no está verificado, recibirá instrucciones para la verificación' };
+    }
+
+    if (user.isEmailVerified) {
+      return { message: 'Si el correo existe y no está verificado, recibirá instrucciones para la verificación' };
+    }
+
+    // Generar nuevo token
+    const verificationToken = randomBytes(32).toString('hex');
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 3600000); // 24 horas
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationToken: verificationToken,
+        emailVerificationTokenExpiry: verificationTokenExpiry,
+      },
+    });
+
+    await this.sendEmailVerification(user.id, user.firstname, user.email, verificationToken);
+
+    return { message: 'Si el correo existe y no está verificado, recibirá instrucciones para la verificación' };
   }
 
   async validateToken(token: string) {
@@ -226,11 +351,15 @@ export class AuthService {
       },
     });
 
-    // Aquí normalmente enviarías un correo electrónico con el token
-    // Por ahora, solo devolvemos el token para pruebas
+    // Construye el enlace de recuperación (ajústalo según tu frontend)
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+    // Genera el HTML usando el template y envía el email
+    const html = recoveryPasswordTemplate(user.firstname, resetLink);
+    await this.emailService.sendMail(email, 'Recuperación de Contraseña', html);
+
     return {
       message: 'Instrucciones enviadas al correo electrónico',
-      resetToken, // En producción no deberías devolver esto, es solo para pruebas
     };
   }
 

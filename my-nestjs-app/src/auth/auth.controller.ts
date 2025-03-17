@@ -7,6 +7,7 @@ import {
   UseGuards,
   Request,
   UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
@@ -84,5 +85,23 @@ export class AuthController {
       passwordDto.currentPassword,
       passwordDto.newPassword,
     );
+  }
+
+  @Public()
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('send-verification-email')
+  async sendVerificationEmail(@Request() req: RequestWithUser) {
+    return this.authService.sendVerificationEmail(req.user.id);
+  }
+
+  @Public()
+  @Post('resend-verification')
+  async resendVerificationEmail(@Body() emailDto: { email: string }) {
+    return this.authService.resendVerificationEmail(emailDto.email);
   }
 }
