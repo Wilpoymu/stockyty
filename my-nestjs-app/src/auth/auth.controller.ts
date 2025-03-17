@@ -37,7 +37,28 @@ export class AuthController {
         loginDto.password,
       );
       return this.authService.login(user);
-    } catch (_error) {
+    } catch (error) {
+      // Preserve specific error messages for better user experience
+      if (error instanceof UnauthorizedException) {
+        // Check if the error is about email verification
+        if (error.message.includes('Email no verificado')) {
+          throw new UnauthorizedException({
+            message: error.message,
+            error: 'EmailNotVerified',
+            statusCode: 401,
+          });
+        }
+        // Check if the error is about inactive user
+        if (error.message.includes('Usuario inactivo')) {
+          throw new UnauthorizedException({
+            message: error.message,
+            error: 'UserInactive',
+            statusCode: 401,
+          });
+        }
+      }
+      
+      // Default to generic credentials error for other cases (wrong password, user not found)
       throw new UnauthorizedException('Credenciales inválidas');
     }
   }

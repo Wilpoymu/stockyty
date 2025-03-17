@@ -39,6 +39,7 @@ export async function seedAdminUserIfNotExist(): Promise<void> {
       address: 'Admin Address',
       status: 1,
       avatar: 'avatar.png',
+      isEmailVerified: true,
       // Assign the ADMIN role through the roleUsers relation.
       roleUsers: {
         create: {
