@@ -199,6 +199,25 @@ export class AgendaService {
    * @param {string[]} userIds - The IDs of users to assign.
    */
   async assignUsers(agendaId: string, userIds: string[]): Promise<void> {
+    // Validate that all users exist before attempting to assign them
+    if (userIds.length > 0) {
+      const existingUsers = await this.prisma.user.findMany({
+        where: {
+          id: {
+            in: userIds,
+          },
+        },
+        select: { id: true },
+      });
+
+      const existingUserIds = existingUsers.map(user => user.id);
+      const missingUserIds = userIds.filter(id => !existingUserIds.includes(id));
+
+      if (missingUserIds.length > 0) {
+        throw new NotFoundException(`Users with IDs ${missingUserIds.join(', ')} not found`);
+      }
+    }
+
     // First delete all existing assignments for this agenda
     await this.prisma.agendaAssignment.deleteMany({
       where: { agendaId },
