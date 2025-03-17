@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { seedRolesIfNotExist } from './seeders/roles.seeder';
-import { seedAdminUserIfNotExist } from './seeders/adminUser.seeder';
-import { seedPermissionsIfNotExist } from 'src/seeders/permissions.seeder';
+import { seedRolesIfNotExist } from '../seeders/roles.seeder';
+import { seedAdminUserIfNotExist } from '../seeders/adminUser.seeder';
+import { seedPermissionsIfNotExist } from 'seeders/permissions.seeder';
 import { ValidationPipe } from '@nestjs/common';
 
 /**
@@ -15,7 +15,7 @@ import { ValidationPipe } from '@nestjs/common';
  * @function bootstrap
  */
 async function bootstrap() {
-  await seedRolesIfNotExist();
+  await seedRolesIfNotExist()
   await seedAdminUserIfNotExist();
   await seedPermissionsIfNotExist();
   const app = await NestFactory.create(AppModule);
