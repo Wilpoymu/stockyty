@@ -1,0 +1,261 @@
+{
+	"info": {
+		"_postman_id": "4456ef29-36ac-4f25-8a2e-ed1d0df4362f",
+		"name": "SENA ADSO API - Auth Module",
+		"description": "Collection for testing Auth endpoints of the SENA ADSO app",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "29492112",
+		"_collection_link": "https://softsolutions-9030.postman.co/workspace/SENA-ADSO-API~c88403d8-ea47-4d34-a01e-58ee05c3a887/collection/29492112-4456ef29-36ac-4f25-8a2e-ed1d0df4362f?action=share&source=collection_link&creator=29492112"
+	},
+	"item": [
+		{
+			"name": "Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"if (jsonData && jsonData.access_token) {",
+							"    pm.environment.set('token', jsonData.access_token);",
+							"    console.log('Token guardado: ' + jsonData.access_token);",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"adminpassword\"\n}"
+				},
+				"url": "{{authUrl}}/login",
+				"description": "Login with admin credentials"
+			},
+			"response": []
+		},
+		{
+			"name": "Register",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"firstname\": \"John\",\n    \"lastname\": \"Doe\",\n    \"username\": \"johndoe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"securepassword\",\n    \"phone\": \"3001234567\",\n    \"status\": 1,\n    \"avatar\": \"avatar.png\",\n    \"documentNumber\": \"123456789\",\n    \"address\": \"123 Main St\"\n}"
+				},
+				"url": "{{baseUrl}}/auth/register",
+				"description": "Register a new user"
+			},
+			"response": []
+		},
+		{
+			"name": "Validate Token",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"token\": \"{{token}}\"\n}"
+				},
+				"url": "{{authUrl}}/validate-token",
+				"description": "Validate a JWT token"
+			},
+			"response": []
+		},
+		{
+			"name": "Forgot Password",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"cespedugno@gufum.com\"\n}"
+				},
+				"url": "{{authUrl}}/forgot-password",
+				"description": "Request a password reset"
+			},
+			"response": []
+		},
+		{
+			"name": "Reset Password",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"token\": \"{{passwordToken}}\",\n    \"newPassword\": \"q1w2e3r4\"\n}"
+				},
+				"url": "{{authUrl}}/reset-password",
+				"description": "Reset password with token"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Profile",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{authUrl}}/me",
+				"description": "Get the current user's profile"
+			},
+			"response": []
+		},
+		{
+			"name": "Change Password",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"currentPassword\": \"adminpassword\",\n    \"newPassword\": \"newSecurePassword\"\n}"
+				},
+				"url": "{{authUrl}}/change-password",
+				"description": "Change the user's password"
+			},
+			"response": []
+		},
+		{
+			"name": "Verify Email",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{authUrl}}/verify-email?token={{verificationToken}}",
+					"host": [
+						"{{authUrl}}"
+					],
+					"path": [
+						"verify-email"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "{{verificationToken}}"
+						}
+					]
+				},
+				"description": "Verify user email with token"
+			},
+			"response": []
+		},
+		{
+			"name": "Resend Verification Email",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"john.doe@example.com\"\n}"
+				},
+				"url": "{{authUrl}}/resend-verification",
+				"description": "Resend verification email to unverified users"
+			},
+			"response": []
+		},
+		{
+			"name": "Send Verification Email (Authenticated)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{authUrl}}/send-verification-email",
+				"description": "Send verification email to the authenticated user"
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": {
+			"token": "{{token}}"
+		}
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000/auth",
+			"type": "string"
+		},
+		{
+			"value": "",
+			"type": "string"
+		}
+	]
+}
