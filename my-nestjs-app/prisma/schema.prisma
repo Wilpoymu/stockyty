@@ -27,8 +27,11 @@ model User {
   avatar           String?   @default("no_avatar.png")
   documentNumber   String
   address          String
-  resetToken       String?
+  resetToken       String?   @db.VarChar(255)
   resetTokenExpiry DateTime?
+  isEmailVerified               Boolean   @default(false)
+  emailVerificationToken        String?   @db.VarChar(255)
+  emailVerificationTokenExpiry  DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime? @map("deleted_at")
@@ -72,7 +75,7 @@ model Permission {
   label       String?
   description String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 
   // Relaciones
   rolePermissions RolePermission[]
@@ -135,6 +138,16 @@ model AgendaAssignment {
   updatedAt DateTime @default(now())
 
   @@unique([agendaId, userId])
+}
+
+// ========== Email ==========
+
+model Email {
+  id        String   @id @default(uuid())
+  email     String
+  subject   String
+  html      String
+  createdAt DateTime @default(now())
 }
 
 // ========== COMPRAS ==========
