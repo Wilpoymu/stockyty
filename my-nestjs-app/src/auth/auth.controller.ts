@@ -8,6 +8,9 @@ import {
   Request,
   UnauthorizedException,
   Query,
+  Headers,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
@@ -57,7 +60,7 @@ export class AuthController {
           });
         }
       }
-      
+
       // Default to generic credentials error for other cases (wrong password, user not found)
       throw new UnauthorizedException('Credenciales inválidas');
     }
@@ -124,5 +127,28 @@ export class AuthController {
   @Post('resend-verification')
   async resendVerificationEmail(@Body() emailDto: { email: string }) {
     return this.authService.resendVerificationEmail(emailDto.email);
+  }
+
+  /**
+   * Logout a user by invalidating their JWT token
+   * @param authHeader The authorization header containing the JWT token
+   * @param req The request object containing user information
+   * @returns A success message confirming logout
+   */
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  async logout(
+    @Headers('authorization') authHeader: string,
+    @Request() req: RequestWithUser,
+  ) {
+    // Extract the token from the Authorization header
+    const token = authHeader?.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedException('No token provided');
+    }
+    
+    // Log user out and return the result
+    return this.authService.logout(token, req.user.id);
   }
 }

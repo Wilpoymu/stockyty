@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,6 +16,7 @@ import { EmailService } from '../email/email.service';
 import { recoveryPasswordTemplate } from '../email/templates/recovery-password.template';
 import { emailVerificationTemplate } from '../email/templates/email-verification.template';
 import { welcomeTemplate } from '../email/templates/welcome.template';
+import { TokenBlacklistService } from './services/token-blacklist.service';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +24,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   async validateUser(
@@ -131,7 +134,7 @@ export class AuthService {
       });
 
       if (existingUser) {
-        throw new Error('El usuario ya está registrado');
+        throw new BadRequestException('El usuario ya está registrado');
       }
 
       // Verificar que el rol existe
@@ -140,7 +143,7 @@ export class AuthService {
       });
 
       if (!role) {
-        throw new Error(`Role with id ${role_id} not found`);
+        throw new BadRequestException(`Role with id ${role_id} not found`);
       }
 
       // Hashear la contraseña
@@ -501,5 +504,44 @@ export class AuthService {
     });
 
     return { message: 'Contraseña cambiada con éxito' };
+  }
+
+  /**
+   * Invalidates a user's JWT token by adding it to the blacklist
+   * @param token The JWT token to invalidate
+   * @param userId The ID of the user who is logging out
+   * @returns A success message confirming logout
+   */
+  async logout(token: string, userId: string) {
+    try {
+      // Verify the token is still valid before blacklisting
+      try {
+        const payload = this.jwtService.verify<JwtPayload>(token);
+        if (payload.sub !== userId) {
+          throw new UnauthorizedException('Token does not match current user');
+        }
+      } catch (jwtError) {
+        // If token is already invalid, just return success
+        if (jwtError.name === 'TokenExpiredError') {
+          return { message: 'Sesión cerrada exitosamente (token ya expirado)' };
+        }
+        throw new UnauthorizedException('Token inválido');
+      }
+
+      // Add token to blacklist
+      await this.tokenBlacklistService.blacklistToken(token);
+      
+      return { 
+        message: 'Sesión cerrada exitosamente',
+        success: true
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      
+      console.error('Logout error:', error);
+      throw new InternalServerErrorException('Error durante el cierre de sesión');
+    }
   }
 }
