@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,86 +7,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ========== USUARIOS Y PERMISOS ==========
-
 model User {
-  id               String    @id @default(cuid())
-  firstname        String
-  lastname         String
-  username         String    @unique
-  email            String    @unique
-  password         String
-  phone            String
-  status           Int       @default(1)
-  avatar           String?   @default("no_avatar.png")
-  documentNumber   String
-  address          String
-  resetToken       String?   @db.VarChar(255)
-  resetTokenExpiry DateTime?
-  isEmailVerified               Boolean   @default(false)
-  emailVerificationToken        String?   @db.VarChar(255)
-  emailVerificationTokenExpiry  DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  deletedAt        DateTime? @map("deleted_at")
+  id                           String    @id @default(cuid())
+  firstname                    String
+  lastname                     String
+  username                     String    @unique
+  email                        String    @unique
+  password                     String
+  phone                        String
+  status                       Int       @default(1)
+  avatar                       String?   @default("no_avatar.png")
+  documentNumber               String
+  address                      String
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+  deletedAt                    DateTime? @map("deleted_at")
+  resetToken                   String?   @db.VarChar(255)
+  resetTokenExpiry             DateTime?
+  emailVerificationToken       String?   @db.VarChar(255)
+  emailVerificationTokenExpiry DateTime?
+  isEmailVerified              Boolean   @default(false)
 
-  // Relaciones
-  roleUsers         RoleUser[]
-  purchases         Purchase[]
-  purchaseUsers     PurchaseUser[]
-  paymentPurchases  PaymentPurchase[]
-  sales             Sale[]
-  quotations        Quotation[]
-  paymentSales      PaymentSale[]
-  orders            Order[]
-  agendaAssignments AgendaAssignment[]
-  createdAgendas    Agenda[]
+  agenda                 Agenda[]
+  agendaassignment       AgendaAssignment[]
+  Order                  Order[]                  @relation("ClientOrders")
+  orders                 Order[]                  @relation("UserOrders")
+  paymentPurchases       PaymentPurchase[]
+  paymentSales           PaymentSale[]
+  purchaseUsers          PurchaseUser[]
+  purchases              Purchase[]
+  QuotationComment       QuotationComment[]
+  QuotationStatusHistory QuotationStatusHistory[]
+  clientQuotations       Quotation[]              @relation("ClientQuotations")
+  Quotation              Quotation[]              @relation("AssignedQuotations")
+  quotations             Quotation[]              @relation("UserQuotations")
+  roleUsers              RoleUser[]
+  sales                  Sale[]
 
   @@index([email])
   @@map("users")
 }
 
 model Role {
-  id          String    @id @default(cuid())
-  name        String    @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   label       String?
   description String?
-  status      Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime? @map("deleted_at")
+  status      Int     @default(0)
 
-  // Relaciones
-  roleUsers       RoleUser[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+  deletedAt DateTime? @map("deleted_at")
+
   rolePermissions RolePermission[]
+  roleUsers       RoleUser[]
 
   @@map("roles")
 }
 
 model Permission {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   label       String?
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
 
-  // Relaciones
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   rolePermissions RolePermission[]
 
   @@map("permissions")
 }
 
 model RoleUser {
-  id        String   @id @default(cuid())
-  userId    String
-  roleId    String
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  // Relaciones
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
   @@index([roleId])
@@ -104,9 +100,8 @@ model RolePermission {
   roleId       String
   permissionId String
 
-  // Relaciones
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
   @@index([permissionId])
@@ -115,27 +110,31 @@ model RolePermission {
 
 // ========== AGENDA ==========
 model Agenda {
-  id                String             @id @default(cuid())
-  date              DateTime
-  time              String
-  description       String
-  status            String             @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
-  notes             String?
-  createdById       String
+  id          String   @id @default(cuid())
+  date        DateTime
+  time        String
+  description String
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  notes       String?
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   createdBy         User               @relation(fields: [createdById], references: [id])
   agendaAssignments AgendaAssignment[]
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
 }
 
 model AgendaAssignment {
-  id        String   @id @default(cuid())
-  agendaId  String
-  userId    String
-  agenda    Agenda   @relation(fields: [agendaId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  id       String @id @default(cuid())
+  agendaId String
+  userId   String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
+
+  agenda Agenda @relation(fields: [agendaId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
   @@unique([agendaId, userId])
 }
@@ -150,304 +149,262 @@ model Email {
   createdAt DateTime @default(now())
 }
 
-// ========== COMPRAS ==========
-
 model Purchase {
   id            String    @id @default(cuid())
-  date          DateTime?
-  ref           String?
+  userId        String
   providerId    String
-  total         Decimal   @db.Decimal(10, 2)
-  taxRate       Float
+  total         Decimal?  @db.Decimal(10, 2)
   shipping      Float
   discount      Float
   notes         String    @db.Text
-  taxNet        Float
-  paidAmount    Float
-  paymentStatus String    @default("PENDING")
   status        Int       @default(1)
-  grandTotal    Float
   paymentType   String
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime  @default(now())
   deletedAt     DateTime?
+  grandTotal    Float
+  paidAmount    Float
+  paymentStatus String    @default("PENDING")
+  ref           String?
+  taxNet        Float
+  taxRate       Float
 
-  // Relaciones
-  provider         Provider          @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  details          PurchaseDetail[]
   facture          PaymentPurchase[]
+  details          PurchaseDetail[]
   products         PurchaseProduct[]
-  purchaseUsers    PurchaseUser[]
-  userId           String
-  user             User              @relation(fields: [userId], references: [id])
   PurchaseProvider PurchaseProvider?
+  purchaseUsers    PurchaseUser[]
+  provider         Provider          @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([providerId])
   @@map("purchases")
 }
 
-// ========== DETALLE DE COMPRAS ==========
 model PurchaseDetail {
-  id               String   @id @default(cuid())
+  id               String  @id @default(cuid())
   purchaseId       String
   purchaseUnitId   String?
-  quantity         Int      @default(1)
+  quantity         Int     @default(1)
   productId        String
-  total            Decimal  @db.Decimal(10, 2)
+  total            Decimal @db.Decimal(10, 2)
   productVariantId String?
-  price            Decimal  @db.Decimal(10, 2)
+  price            Decimal @db.Decimal(10, 2)
   taxNet           Float
   discount         Float
   discountMethod   String
   taxMethod        String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @default(now())
 
-  // Relaciones
-  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   product  Product  @relation(fields: [productId], references: [id])
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@index([purchaseId])
   @@index([productId])
   @@map("purchase_details")
 }
 
-// ========== COMPRAS POR USUARIOS ==========
 model PurchaseUser {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   userId     String
   purchaseId String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
 
-  // Relaciones
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, purchaseId])
   @@index([purchaseId])
   @@map("purchase_users")
 }
 
-// ========== COMPRAS POR PRODUCTO ==========
-
 model PurchaseProduct {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   purchaseId      String
   productId       String
-  quantity        Int      @default(1)
-  priceAtPurchase Decimal  @db.Decimal(10, 2)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now())
+  quantity        Int     @default(1)
+  priceAtPurchase Decimal @db.Decimal(10, 2)
 
-  // Relaciones
-  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   product  Product  @relation(fields: [productId], references: [id])
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@index([purchaseId])
   @@index([productId])
   @@map("purchase_products")
 }
 
-// ========== COMPRAS POR PROVEEDOR ==========
 model PurchaseProvider {
-  id         String   @id @default(cuid())
-  purchaseId String   @unique
+  id         String @id @default(cuid())
+  purchaseId String @unique
   providerId String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
 
-  // Relaciones
-  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@unique([purchaseId, providerId])
   @@index([providerId])
   @@map("purchase_providers")
 }
 
-// ========== PROVEEDORES ==========
 model Provider {
   id          String   @id @default(cuid())
   name        String
-  code        Int
   email       String   @unique
   phone       String
-  country     String?
-  city        String?
   address     String
   status      Int      @default(1)
   contactName String?
-  taxNumber   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
+  city        String?
+  code        Int
+  country     String?
+  taxNumber   String?
 
-  // Relaciones
-  purchases        Purchase[]
   purchaseProvider PurchaseProvider[]
+  purchases        Purchase[]
 
   @@index([email])
   @@map("providers")
 }
 
-// ========== PAGOS COMPRAS ==========
 model PaymentPurchase {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   purchaseId String
   amount     Float
   charge     Float
   ref        String
   reglement  String
   userId     String
-  date       DateTime
   notes      String
   accountId  String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
 
-  // Relaciones
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account  Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  account  Account? @relation(fields: [accountId], references: [id])
   purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([purchaseId])
+  @@index([accountId], map: "payment_purchases_accountId_fkey")
+  @@index([userId], map: "payment_purchases_userId_fkey")
   @@map("payment_purchases")
 }
 
-// ========== PRODCUTOS ==========
 model Product {
-  id             String   @id @default(cuid())
-  code           String?
-  typeBarcode    String?
-  name           String?
-  cost           Decimal  @db.Decimal(10, 2)
-  price          Decimal  @db.Decimal(10, 2)
-  unitId         String?
-  unitSaleId     String?
-  unitPurchaseId String?
-  stockAlert     Float
-  categoryId     String
-  subCategoryId  String?
-  isVariant      Int
-  isImei         Int
-  taxMethod      String
-  image          String
-  brandId        String?
-  isActive       Int
-  note           String   @db.Text
-  type           String
-  stock          Int      @default(0)
-  sku            String
-  status         Int      @default(1)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
+  id          String   @id @default(cuid())
+  name        String?
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  sku         String
+  status      Int      @default(1)
+  categoryId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  brandId     String?
+  code        String?
+  cost        Decimal  @db.Decimal(10, 2)
+  image       String
+  note        String   @db.Text
+  taxMethod   String
+  type        String
+  typeBarcode String?
 
-  // Relaciones
-  category         Category?         @relation(fields: [categoryId], references: [id])
-  unit             Unit?             @relation(name: "unitProduct", fields: [unitId], references: [id], map: "fk_product_unit")
-  unitSale         Unit?             @relation(name: "unitProdcutSale", fields: [unitSaleId], references: [id], map: "fk_product_unit_sale")
-  unitPurchase     Unit?             @relation(name: "unitPurchaseProduct", fields: [unitPurchaseId], references: [id], map: "fk_product_unit_purchase")
-  brand            Brand?            @relation(fields: [brandId], references: [id], map: "fk_product_brand")
-  purchaseProducts PurchaseProduct[]
-  PurchaseDetail   PurchaseDetail[]
   CategoryProduct  CategoryProduct[]
-  ProductVariant   ProductVariant?
-  SaleDetail       SaleDetail[]
-  QuotationDetail  QuotationDetail[]
   OrderDetail      OrderDetail[]
+  ProductVariant   ProductVariant?
+  brand            Brand?            @relation(fields: [brandId], references: [id], map: "fk_product_brand")
+  category         Category          @relation(fields: [categoryId], references: [id])
+  PurchaseDetail   PurchaseDetail[]
+  purchaseProducts PurchaseProduct[]
+  QuotationDetail  QuotationDetail[]
+  SaleDetail       SaleDetail[]
 
   @@index([sku])
+  @@index([brandId], map: "fk_product_brand")
+  @@index([categoryId], map: "products_categoryId_fkey")
   @@map("products")
 }
 
-// ========== CUENTAS ==========
 model Account {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   accountNumber  String
   accountName    String
   initialBalance Float
   balance        Float
   notes          String?
   type           String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now())
 
-  // Relaciones
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   payments     PaymentPurchase[]
   paymentSales PaymentSale[]
 
   @@map("accounts")
 }
 
-// ========== CATEGORIA DE PRODUCTOS ==========
 model CategoryProduct {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   productId  String
   categoryId String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
 
-  // Relaciones
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, categoryId])
   @@index([categoryId])
   @@map("category_products")
 }
 
-// ========== CATEGORIAS ==========
 model Category {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  code        String?
-  description String?  @db.Text
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String? @db.Text
   type        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  code        String?
 
-  // Relaciones
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
   products CategoryProduct[]
   Product  Product[]
 
   @@map("categories")
 }
 
-// ========== UNIDADES ==========
-model Unit {
-  id            String   @id @default(cuid())
-  name          String
-  shortName     String
-  baseUnit      Int
-  operator      String
-  operatorValue Float
-  status        Int      @default(1)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now())
-
-  // Relaciones
-  products        Product[] @relation("unitProduct")
-  productPurchase Product[] @relation("unitPurchaseProduct")
-  productSale     Product[] @relation("unitProdcutSale")
-
-  @@map("units")
-}
-
-// ========== MARCA ==========
 model Brand {
-  id          String    @id @default(cuid())
+  id          String @id @default(cuid())
   name        String
   description String
   image       String
-  deleted_at  DateTime?
+  cost        Float
 
-  products Product[]
+  deleted_at DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  products        Product[]
+  QuotationDetail QuotationDetail[]
 
   @@map("brands")
 }
 
-// ========== VARIANTES DE PRODUCTOS ==========
 model ProductVariant {
   id        String @id @default(cuid())
   name      String @unique
@@ -458,60 +415,43 @@ model ProductVariant {
   image     String
   productId String @unique
 
-  product Product @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  OrderDetail OrderDetail[]
+  product     Product       @relation(fields: [productId], references: [id])
 
   @@map("product_variants")
 }
 
-// ========== DETALLES VENTAS ==========
 model SaleDetail {
   id               String   @id @default(cuid())
   date             DateTime
   saleId           String
-  saleUnitId       String
+  saleUnitId       String?
   quantity         Float
   productId        String
   total            Float
-  productVariantId String
+  productVariantId String?
   price            Float
   TaxNet           Float
   discount         Float
   discountMethod   String
   taxMethod        String
 
-  sale    Sale    @relation(fields: [saleId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
 
+  product Product @relation(fields: [productId], references: [id])
+  sale    Sale    @relation(fields: [saleId], references: [id])
+
+  @@index([productId], map: "sale_details_productId_fkey")
+  @@index([saleId], map: "sale_details_saleId_fkey")
   @@map("sale_details")
 }
 
-// ========== DETALLE COTIZACIONES ==========
-model QuotationDetail {
-  id             String  @id @default(cuid())
-  productId      String
-  quotationId    String
-  quantity       Float
-  unitPrice      Float // precio unitario
-  subtotal       Float // cantidad * precio unitario
-  netValue       Float // valor sin impuestos ni descuentos
-  brand          String? // marca del producto, si aplica
-  discount       Float
-  discountMethod String
-  taxNet         Float
-  taxMethod      String
-  adminExpenses  Float // gastos administrativos
-  profit         Float // utilidad
-  total          Float
-
-  quotation Quotation @relation(fields: [quotationId], references: [id])
-  product   Product   @relation(fields: [productId], references: [id])
-
-  @@map("quotation_details")
-}
-
-// ========== VENTAS ==========
 model Sale {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   date           DateTime
   ref            String
   isPos          Int
@@ -522,7 +462,6 @@ model Sale {
   taxRate        Float
   notes          String?
   totalReturn    Float
-  warehouseId    String
   userId         String
   status         String
   discount       Float
@@ -530,52 +469,21 @@ model Sale {
   paidAmount     Float
   paymentStatus  String
   shippingStatus String
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @default(now())
-  deleted_at     DateTime?
 
-  user    User          @relation(fields: [userId], references: [id])
-  details SaleDetail[]
-  client  Client        @relation(fields: [clientId], references: [id])
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @default(now())
+
+  orderId String        @unique
+  order   Order?        @relation(fields: [orderId], references: [id])
   facture PaymentSale[]
-  orderId String?       @unique
-  order   Order?
+  details SaleDetail[]
+  user    User          @relation(fields: [userId], references: [id])
 
+  @@index([userId], map: "sales_userId_fkey")
   @@map("sales")
 }
 
-// ========== COTIZACIONES ==========
-
-model Quotation {
-  id            String    @id @default(cuid())
-  date          DateTime
-  productId     String
-  ref           String?
-  clientId      String
-  grandTotal    Float
-  warehouseId   String
-  userId        String
-  status        String
-  notes         String?
-  discount      Float
-  shipping      Float
-  taxNet        Float
-  taxRate       Float
-  adminExpenses Float // gastos administrativos
-  profit        Float? // utilidad
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @default(now())
-  deleted_at    DateTime?
-
-  user    User              @relation(fields: [userId], references: [id])
-  details QuotationDetail[]
-  client  Client            @relation(fields: [clientId], references: [id])
-  orders  Order[]
-
-  @@map("quotations")
-}
-
-// ========== PAGOS VENTAS ==========
 model PaymentSale {
   id        String   @id @default(cuid())
   saleId    String
@@ -587,49 +495,151 @@ model PaymentSale {
   date      DateTime
   notes     String
   accountId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  // Relaciones
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  account Account? @relation(fields: [accountId], references: [id])
   sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([saleId])
+  @@index([accountId], map: "payment_sales_accountId_fkey")
+  @@index([userId], map: "payment_sales_userId_fkey")
   @@map("payment_sales")
 }
 
-// ========== CLIENTES ==========
-model Client {
-  id        String    @id @default(cuid())
-  name      String
-  code      Int
-  adress    String
-  email     String
-  phone     String
-  country   String
-  city      String
-  taxNumber String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @default(now())
-  deletedAt DateTime? @map("deleted_at")
+model QuotationDetail {
+  id                 String   @id @default(cuid())
+  productId          String
+  quotationId        String
+  adminExpenses      Float
+  discount           Float
+  netValue           Float
+  profit             Float
+  quantity           Float
+  subtotal           Float
+  unitPrice          Float
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now())
+  brandCost          Float
+  brandId            String?
+  commercialDiscType Int      @default(1)
+  commercialDiscount Float
+  description        String
+  discountType       Int      @default(1)
+  finalTotal         Float
+  finalUnitPrice     Float
+  hasPriceRanges     Boolean  @default(false)
+  netTotal           Float
+  profitPercentage   Float    @default(20)
+  totalWithBrand     Float
+  taxAmount          Float
+  discountValue      Float
 
-  // Relaciones
-  sales      Sale[]
-  quotations Quotation[]
-  Order      Order[]
+  priceRanges ProductPriceRange[]
+  product     Product             @relation(fields: [productId], references: [id], map: "fk_quotation_details_product")
+  quotation   Quotation           @relation(fields: [quotationId], references: [id], map: "fk_quotation_details_quotation")
+  brand       Brand?              @relation(fields: [brandId], references: [id])
 
-  @@index([email])
-  @@map("clients")
+  @@index([productId], map: "fk_quotation_details_product")
+  @@index([brandId], map: "quotation_details_brandId_fkey")
+  @@index([quotationId], map: "quotation_details_quotationId_fkey")
+  @@map("quotation_details")
 }
 
-// ========== PEDIDOS ==========
+model Quotation {
+  id                 String    @id @default(cuid())
+  clientId           String
+  grandTotal         Float
+  userId             String
+  status             Int       @default(1)
+  shipping           Float
+  taxRate            Float
+  createdAt          DateTime  @default(now())
+  deletedAt          DateTime?
+  updatedAt          DateTime  @default(now())
+  deliveryDate       String?
+  employeeAssignedId String?
+  includesTax        Boolean   @default(true)
+  internalNotes      String?
+  observations       String?
+  paymentTerms       String?
+  quotationNumber    String
+  subTotal           Float
+  totalDiscount      Float
+  totalNet           Float
+  totalWithTax       Float
+  validUntil         DateTime
+  taxAmount          Float
+
+  OrderDetail      OrderDetail[]
+  orders           Order[]
+  comments         QuotationComment[]
+  details          QuotationDetail[]
+  statusHistory    QuotationStatusHistory[]
+  client           User                     @relation("ClientQuotations", fields: [clientId], references: [id])
+  employeeAssigned User?                    @relation("AssignedQuotations", fields: [employeeAssignedId], references: [id])
+  user             User                     @relation("UserQuotations", fields: [userId], references: [id])
+
+  @@index([clientId], map: "quotations_clientId_fkey")
+  @@index([employeeAssignedId], map: "quotations_employeeAssignedId_fkey")
+  @@index([userId], map: "quotations_userId_fkey")
+  @@map("quotations")
+}
+
+model ProductPriceRange {
+  id                String          @id @default(cuid())
+  quotationDetailId String
+  minQuantity       Float
+  maxQuantity       Float?
+  unitPrice         Float
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now())
+  quotationDetail   QuotationDetail @relation(fields: [quotationDetailId], references: [id], onDelete: Cascade)
+
+  @@index([quotationDetailId], map: "product_price_ranges_quotationDetailId_fkey")
+  @@map("product_price_ranges")
+}
+
+model QuotationStatusHistory {
+  id          String    @id @default(cuid())
+  quotationId String
+  status      Int       @default(1)
+  userId      String
+  comment     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([quotationId], map: "quotation_status_history_quotationId_fkey")
+  @@index([userId], map: "quotation_status_history_userId_fkey")
+  @@map("quotation_status_history")
+}
+
+model QuotationComment {
+  id          String    @id @default(cuid())
+  quotationId String
+  userId      String
+  comment     String
+  isInternal  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([quotationId], map: "quotation_comments_quotationId_fkey")
+  @@index([userId], map: "quotation_comments_userId_fkey")
+  @@map("quotation_comments")
+}
+
 model Order {
-  id          String   @id @default(cuid())
-  date        DateTime @default(now())
-  ref         String   @unique
+  id          String        @id @default(cuid())
+  date        DateTime      @default(now())
+  ref         String        @unique
   clientId    String
-  quotationId String? // Opcional si el pedido proviene de una cotización
+  quotationId String?
   status      String
   notes       String?
   total       Float
@@ -639,34 +649,53 @@ model Order {
   shipping    Float
   grandTotal  Float
   userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now())
+  details     OrderDetail[]
+  sale        Sale?
+  client      User          @relation("ClientOrders", fields: [clientId], references: [id])
+  quotation   Quotation?    @relation(fields: [quotationId], references: [id])
+  user        User          @relation("UserOrders", fields: [userId], references: [id])
 
-  client    Client        @relation(fields: [clientId], references: [id])
-  quotation Quotation?    @relation(fields: [quotationId], references: [id])
-  details   OrderDetail[]
-  sale      Sale?         @relation(fields: [id], references: [orderId], map: "Sale_Order")
-  user      User          @relation(fields: [userId], references: [id])
-
+  @@index([clientId], map: "orders_clientId_fkey")
+  @@index([quotationId], map: "orders_quotationId_fkey")
+  @@index([userId], map: "orders_userId_fkey")
   @@map("orders")
 }
 
-// ========== DETALLE DE PEDIDOS ==========
 model OrderDetail {
-  id               String  @id @default(cuid())
+  id               String          @id @default(cuid())
   orderId          String
   productId        String
-  quantity         Float
-  price            Float
-  total            Float
-  taxNet           Float
   discount         Float
   discountMethod   String
-  taxMethod        String
+  price            Float
   productVariantId String?
+  quantity         Float
+  quotationId      String?
+  taxMethod        String
+  taxNet           Float
+  total            Float
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @default(now())
+  order            Order           @relation(fields: [orderId], references: [id])
+  product          Product         @relation(fields: [productId], references: [id])
+  productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id])
+  quotation        Quotation?      @relation(fields: [quotationId], references: [id])
 
-  order   Order   @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
-
+  @@index([orderId], map: "order_details_orderId_fkey")
+  @@index([productId], map: "order_details_productId_fkey")
+  @@index([productVariantId], map: "order_details_productVariantId_fkey")
+  @@index([quotationId], map: "order_details_quotationId_fkey")
   @@map("order_details")
+}
+
+model BlacklistedToken {
+  id        String   @id @default(cuid())
+  token     String   @db.VarChar(2000) // Full token for reference
+  tokenHash String   @unique @db.VarChar(64) // SHA-256 hash of the token (fixed length)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
