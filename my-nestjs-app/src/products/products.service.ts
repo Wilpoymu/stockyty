@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -23,15 +27,7 @@ export class ProductsService {
       typeBarcode,
       cost,
       price,
-      unitId,
-      unitPurchaseId,
-      unitSaleId,
-      stockAlert,
-      subCategoryId,
       brandId,
-      isActive,
-      isImei,
-      isVariant,
       taxMethod,
       image,
       note,
@@ -83,7 +79,7 @@ export class ProductsService {
       },
     });
     if (existingProduct) {
-      throw new BadRequestException('El producto ya se encuentra registrado');
+      throw new ConflictException('El producto ya se encuentra registrado');
     }
 
     // Asegúrate de que el stock sea al menos 1
@@ -97,15 +93,7 @@ export class ProductsService {
           typeBarcode,
           cost,
           price,
-          unitId: unitId ?? undefined,
-          unitPurchaseId: unitPurchaseId ?? undefined,
-          unitSaleId: unitSaleId ?? undefined,
-          stockAlert,
-          subCategoryId: subCategoryId ?? undefined,
           brandId: brandId ?? undefined,
-          isActive,
-          isImei,
-          isVariant,
           taxMethod,
           image,
           note,
@@ -144,7 +132,7 @@ export class ProductsService {
   findAll() {
     return this.prisma.product.findMany({
       include: {
-        category: true, // incluir la categoría directamente
+        category: true,
       },
     });
   }
@@ -153,7 +141,7 @@ export class ProductsService {
     return this.prisma.product.findUnique({
       where: { id },
       include: {
-        category: true, // incluir la categoría directamente
+        category: true,
       },
     });
   }
@@ -172,7 +160,7 @@ export class ProductsService {
       throw new BadRequestException('El stock no puede ser negativo');
     }
 
-    // Asegúrate de que el stock sea al menos 1
+    // Asegurar que el stock sea al menos 1
     const validatedStock =
       updateProductDto.stock !== undefined && updateProductDto.stock < 1
         ? 1
