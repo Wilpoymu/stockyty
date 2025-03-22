@@ -15,8 +15,8 @@ import { AgendaService } from './agenda.service';
 import { CreateAgendaDto, AgendaStatus } from './dto/create-agenda.dto';
 import { UpdateAgendaDto } from './dto/update-agenda.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../roles/guards/roles.guard';
+import { Roles } from '../roles/decorators/roles.decorator';
 
 /**
  * @class AgendaController

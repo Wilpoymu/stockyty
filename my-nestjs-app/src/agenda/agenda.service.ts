@@ -210,11 +210,15 @@ export class AgendaService {
         select: { id: true },
       });
 
-      const existingUserIds = existingUsers.map(user => user.id);
-      const missingUserIds = userIds.filter(id => !existingUserIds.includes(id));
+      const existingUserIds = existingUsers.map((user) => user.id);
+      const missingUserIds = userIds.filter(
+        (id) => !existingUserIds.includes(id),
+      );
 
       if (missingUserIds.length > 0) {
-        throw new NotFoundException(`Users with IDs ${missingUserIds.join(', ')} not found`);
+        throw new NotFoundException(
+          `Users with IDs ${missingUserIds.join(', ')} not found`,
+        );
       }
     }
 
