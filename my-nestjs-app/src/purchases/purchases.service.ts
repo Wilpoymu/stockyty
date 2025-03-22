@@ -2,14 +2,11 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import {
-  CreatePurchaseDto,
-  CreatePurchaseDetailDto,
-  CreatePaymentPurchaseDto,
-} from './dto/create-purchase.dto';
+import { CreatePurchaseDto } from './dto/create-purchase.dto';
+import { CreatePurchaseDetailDto } from './dto/create-purchase-detail.dto';
+import { CreatePaymentPurchaseDto } from './dto/create-payment-purchase.dto';
 import { UpdatePurchaseDto } from './dto/update-purchase.dto';
 import { Purchase } from '@prisma/client';
 
@@ -27,8 +24,6 @@ export class PurchasesService {
 
   async create(createPurchaseDto: CreatePurchaseDto): Promise<Purchase> {
     const {
-      id,
-      date,
       ref,
       providerId,
       total,
@@ -40,7 +35,6 @@ export class PurchasesService {
       paidAmount,
       paymentStatus,
       status,
-      grandTotal,
       paymentType,
       createdAt,
       updatedAt,
@@ -66,28 +60,46 @@ export class PurchasesService {
       throw new Error('La compra ya está registrada');
     }
 
+    const totalCalculated = details.reduce((sum, detail) => {
+      return (
+        sum +
+        detail.quantity * detail.price +
+        (detail.taxNet ?? 0) -
+        (detail.discount ?? 0)
+      );
+    }, 0);
+
+    const taxNetValue = taxNet ?? (total * taxRate) / 100;
+    const grandTotalValue = totalCalculated + taxNetValue + shipping - discount;
+
     try {
       const purchase = await this.prisma.purchase.create({
         data: {
-          id,
-          date,
           ref,
-          total: this.parseNumber(total) ?? 0,
-          taxRate: this.parseNumber(taxRate) ?? 0,
-          shipping: this.parseNumber(shipping) ?? 0,
-          discount: this.parseNumber(discount) ?? 0,
+          total: totalCalculated,
+          taxRate,
+          shipping,
+          discount,
           notes: notes ?? '',
-          taxNet: this.parseNumber(taxNet) ?? 0,
-          paidAmount: this.parseNumber(paidAmount) ?? 0,
+          taxNet: taxNetValue,
+          paidAmount,
           paymentStatus: paymentStatus ?? 'PENDING',
-          status: this.parseNumber(status) ?? 1,
-          grandTotal: this.parseNumber(grandTotal) ?? 0,
+          status: status ?? 1,
+          grandTotal: grandTotalValue,
           paymentType,
           createdAt,
           updatedAt,
           deletedAt,
-          providerId,
-          userId,
+          provider: {
+            connect: {
+              id: providerId,
+            },
+          },
+          user: {
+            connect: {
+              id: userId,
+            },
+          },
           details: {
             create: details.map((detail: CreatePurchaseDetailDto) => ({
               product: { connect: { id: detail.productId } },
@@ -97,8 +109,10 @@ export class PurchasesService {
               discount: detail.discount,
               discountMethod: detail.discountMethod,
               taxMethod: detail.taxMethod,
-              purchaseUnitId: detail.purchaseUnitId ?? null,
-              total: detail.total ?? null,
+              total:
+                detail.quantity * detail.price +
+                detail.taxNet -
+                detail.discount,
               productVariantId: detail.productVariantId ?? null,
             })),
           },
@@ -109,7 +123,6 @@ export class PurchasesService {
               ref: payment.ref,
               reglement: payment.reglement,
               userId: payment.userId,
-              date: payment.date,
               notes: payment.notes,
               accountId: payment.accountId ?? undefined,
             })),
@@ -122,10 +135,20 @@ export class PurchasesService {
           facture: true,
         },
       });
+
+      await this.prisma.$transaction(
+        details.map((detail) =>
+          this.prisma.product.update({
+            where: { id: detail.productId },
+            data: { stock: { increment: detail.quantity } },
+          }),
+        ),
+      );
+
       return purchase;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error al crear la compra:', error);
-      throw new InternalServerErrorException(error.message);
+      throw new BadRequestException(error.message);
     }
   }
 
@@ -192,39 +215,55 @@ export class PurchasesService {
       throw new BadRequestException('No hay datos para actualizar');
     }
 
-    // Validar valores no negativos
-    this.validateNonNegativeValues(updatePurchaseDto);
+    // Usar transacción para todas las operaciones
+    return this.prisma.$transaction(async (prismaClient) => {
+      // 1. Si hay detalles, actualizar productos primero
+      if (
+        updatePurchaseDto.details &&
+        Array.isArray(updatePurchaseDto.details) &&
+        updatePurchaseDto.details.length > 0
+      ) {
+        for (const detail of updatePurchaseDto.details) {
+          const existingDetail = await prismaClient.purchaseDetail.findUnique({
+            where: { id: detail.id },
+          });
 
-    return this.prisma.purchase.update({
-      where: { id },
-      data: {
-        ...updatePurchaseDto,
-        total: this.parseNumber(updatePurchaseDto.total),
-        taxRate: this.parseNumber(updatePurchaseDto.taxRate),
-        shipping: this.parseNumber(updatePurchaseDto.shipping),
-        discount: this.parseNumber(updatePurchaseDto.discount),
-        taxNet: this.parseNumber(updatePurchaseDto.taxNet),
-        paidAmount: this.parseNumber(updatePurchaseDto.paidAmount),
-        grandTotal: this.parseNumber(updatePurchaseDto.grandTotal),
-        status: this.parseNumber(updatePurchaseDto.status),
-        details: updatePurchaseDto.details
-          ? {
-              update: updatePurchaseDto.details.map((detail) => ({
-                where: { id: detail.id },
-                data: {
-                  productId: detail.productId,
-                  quantity: detail.quantity,
-                  price: detail.price,
-                  taxNet: detail.taxNet,
-                  discount: detail.discount,
-                  discountMethod: detail.discountMethod,
-                  taxMethod: detail.taxMethod,
-                },
-              })),
-            }
-          : undefined,
-        facture: {
-          update: updatePurchaseDto.payments?.map((payment) => ({
+          if (!existingDetail) {
+            throw new NotFoundException(
+              `Detalle de compra no encontrado con ID: ${detail.id}`,
+            );
+          }
+
+          const quantityDifference = detail.quantity - existingDetail.quantity;
+
+          await prismaClient.product.update({
+            where: { id: detail.productId },
+            data: { stock: { increment: quantityDifference } },
+          });
+
+          // 2. Actualizar cada detalle individualmente
+          await prismaClient.purchaseDetail.update({
+            where: { id: detail.id },
+            data: {
+              productId: detail.productId,
+              quantity: detail.quantity,
+              price: detail.price,
+              taxNet: detail.taxNet,
+              discount: detail.discount,
+              discountMethod: detail.discountMethod,
+              taxMethod: detail.taxMethod,
+            },
+          });
+        }
+      }
+
+      // 3. Actualizar pagos si existen
+      if (
+        updatePurchaseDto.payments &&
+        Array.isArray(updatePurchaseDto.payments)
+      ) {
+        for (const payment of updatePurchaseDto.payments) {
+          await prismaClient.paymentPurchase.update({
             where: { id: payment.id },
             data: {
               amount: payment.amount,
@@ -232,19 +271,38 @@ export class PurchasesService {
               ref: payment.ref,
               reglement: payment.reglement,
               userId: payment.userId,
-              date: payment.date,
               notes: payment.notes,
               accountId: payment.accountId,
             },
-          })),
+          });
+        }
+      }
+
+      // 4. Actualizar la compra principal (sin los campos anidados)
+      const { details, payments, ...purchaseData } = updatePurchaseDto;
+
+      const updatedPurchase = await prismaClient.purchase.update({
+        where: { id },
+        data: {
+          ...purchaseData,
+          total: this.parseNumber(updatePurchaseDto.total),
+          taxRate: this.parseNumber(updatePurchaseDto.taxRate),
+          shipping: this.parseNumber(updatePurchaseDto.shipping),
+          discount: this.parseNumber(updatePurchaseDto.discount),
+          taxNet: this.parseNumber(updatePurchaseDto.taxNet),
+          paidAmount: this.parseNumber(updatePurchaseDto.paidAmount),
+          grandTotal: this.parseNumber(updatePurchaseDto.grandTotal),
+          status: this.parseNumber(updatePurchaseDto.status),
         },
-      },
-      include: {
-        user: true,
-        provider: true,
-        details: true,
-        facture: true,
-      },
+        include: {
+          user: true,
+          provider: true,
+          details: true,
+          facture: true,
+        },
+      });
+
+      return updatedPurchase;
     });
   }
 
@@ -284,13 +342,10 @@ export class PurchasesService {
     const requiredFields = [
       'providerId',
       'userId',
-      'total',
       'taxRate',
       'shipping',
       'discount',
-      'taxNet',
       'paidAmount',
-      'grandTotal',
       'paymentType',
     ];
 
@@ -328,6 +383,7 @@ export class PurchasesService {
     return typeof value === 'string' ? parseFloat(value) : value;
   }
 
+  // Esta función no se está utilizando, pero la quiero dejar porque sé que en algún momento voy a necesitar utilizarla *o*
   private handlePrismaError(error: unknown): never {
     const prismaError = error as PrismaError;
     if (prismaError.code === 'P2002') {
