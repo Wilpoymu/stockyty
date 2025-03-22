@@ -1,0 +1,214 @@
+{
+	"info": {
+		"_postman_id": "6f70af4f-1fa7-4d51-82aa-67f7b6de0e9d",
+		"name": "SENA ADSO API - Permissions Module",
+		"description": "Collection for testing Permissions endpoints of the SENA ADSO app",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "29492112",
+		"_collection_link": "https://softsolutions-9030.postman.co/workspace/SENA-ADSO-API~c88403d8-ea47-4d34-a01e-58ee05c3a887/collection/29492112-6f70af4f-1fa7-4d51-82aa-67f7b6de0e9d?action=share&source=collection_link&creator=29492112"
+	},
+	"item": [
+		{
+			"name": "Get All Permissions",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{baseUrl}}/permissions",
+				"description": "Get all permissions"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Permission By ID",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{baseUrl}}/permissions/1",
+				"description": "Get a permission by ID"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Permission",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"create:products\",\n    \"description\": \"Permission to create products\"\n}"
+				},
+				"url": "{{baseUrl}}/permissions",
+				"description": "Create a new permission"
+			},
+			"response": []
+		},
+		{
+			"name": "Update Permission",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"description\": \"Permission to create and manage products\"\n}"
+				},
+				"url": "{{baseUrl}}/permissions/1",
+				"description": "Update an existing permission"
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Permission",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{baseUrl}}/permissions/1",
+				"description": "Delete a permission"
+			},
+			"response": []
+		},
+		{
+			"name": "Assign Permission To Role",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"permissionId\": \"1\",\n    \"roleId\": \"1\"\n}"
+				},
+				"url": "{{baseUrl}}/permissions/assign-to-role",
+				"description": "Assign a permission to a role"
+			},
+			"response": []
+		},
+		{
+			"name": "Remove Permission From Role",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"permissionId\": \"1\",\n    \"roleId\": \"1\"\n}"
+				},
+				"url": "{{baseUrl}}/permissions/remove-from-role",
+				"description": "Remove a permission from a role"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Permissions By Role ID",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{baseUrl}}/permissions/by-role/1",
+				"description": "Get all permissions assigned to a specific role"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Roles By Permission ID",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{baseUrl}}/permissions/1/roles",
+				"description": "Get all roles that have a specific permission"
+			},
+			"response": []
+		},
+		{
+			"name": "Check Permission",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"permissionName\": \"create:products\",\n    \"roleId\": \"1\"\n}"
+				},
+				"url": "{{baseUrl}}/permissions/check",
+				"description": "Check if a role has a specific permission"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

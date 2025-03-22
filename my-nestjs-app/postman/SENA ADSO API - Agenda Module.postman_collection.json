@@ -1,0 +1,209 @@
+{
+	"info": {
+		"_postman_id": "8f45de6c-3b27-4a2e-9c8d-e76af5c2d8f1",
+		"name": "SENA ADSO API - Agenda Module",
+		"description": "Collection for testing Agenda endpoints of the SENA ADSO app",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Login as Admin",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"adminpassword\"\n}"
+				},
+				"url": "{{baseUrl}}/auth/login",
+				"description": "Login to get a valid admin token"
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"token\", jsonData.access_token);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "Get All Agendas",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/agenda?date=2023-11-15&status=SCHEDULED",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"agenda"
+					],
+					"query": [
+						{
+							"key": "date",
+							"value": "2023-11-15"
+						},
+						{
+							"key": "status",
+							"value": "SCHEDULED"
+						}
+					]
+				},
+				"description": "Get all agenda items with optional date and status filters"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Agenda By ID",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{baseUrl}}/api/agenda/1",
+				"description": "Get an agenda item by ID"
+			},
+			"response": []
+		},
+		{
+			"name": "Create Agenda",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Client Meeting\",\n    \"description\": \"Initial consultation with new client\",\n    \"startTime\": \"2023-11-15T14:00:00Z\",\n    \"endTime\": \"2023-11-15T15:00:00Z\",\n    \"location\": \"Conference Room A\",\n    \"status\": \"SCHEDULED\"\n}"
+				},
+				"url": "{{baseUrl}}/api/agenda",
+				"description": "Create a new agenda item (requires ADMIN or MANAGER role)"
+			},
+			"response": []
+		},
+		{
+			"name": "Update Agenda",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Updated Client Meeting\",\n    \"description\": \"Follow-up consultation with client\",\n    \"startTime\": \"2023-11-15T15:00:00Z\",\n    \"endTime\": \"2023-11-15T16:00:00Z\",\n    \"location\": \"Conference Room B\"\n}"
+				},
+				"url": "{{baseUrl}}/api/agenda/1",
+				"description": "Update an existing agenda item (requires ADMIN or MANAGER role)"
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Agenda",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{baseUrl}}/api/agenda/1",
+				"description": "Delete an agenda item (requires ADMIN or MANAGER role)"
+			},
+			"response": []
+		},
+		{
+			"name": "Assign Users to Agenda",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"userIds\": [\"3\", \"4\", \"5\"]\n}"
+				},
+				"url": "{{baseUrl}}/api/agenda/1/assign",
+				"description": "Assign users to an agenda item (requires ADMIN or MANAGER role)"
+			},
+			"response": []
+		},
+		{
+			"name": "Update Agenda Status",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"status\": \"COMPLETED\"\n}"
+				},
+				"url": "{{baseUrl}}/api/agenda/1/status",
+				"description": "Update the status of an agenda item (requires ADMIN or MANAGER role)"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

@@ -1,0 +1,133 @@
+{
+  "info": {
+    "_postman_id": "c3456789-89ab-cdef-0123-456789abcdef",
+    "name": "SENA ADSO API - Providers Module",
+    "description": "Collection for testing Providers endpoints of the SENA ADSO app",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Get All Providers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/providers",
+          "host": ["{{baseUrl}}"],
+          "path": ["providers"]
+        },
+        "description": "Get all providers"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Provider By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/providers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["providers", "1"]
+        },
+        "description": "Get a provider by ID"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Provider",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Supplier Inc.\",\n    \"code\": \"SUP001\",\n    \"email\": \"contact@supplier.com\",\n    \"phone\": \"3001234567\",\n    \"country\": \"Colombia\",\n    \"city\": \"Bogotá\",\n    \"address\": \"789 Pine St\",\n    \"status\": 1,\n    \"contactName\": \"Carlos Rodríguez\",\n    \"taxNumber\": \"123456789\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/providers",
+          "host": ["{{baseUrl}}"],
+          "path": ["providers"]
+        },
+        "description": "Create a new provider"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Provider",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Supplier Inc. Updated\",\n    \"phone\": \"3001234568\",\n    \"address\": \"789 Pine St, Suite 100\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/providers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["providers", "1"]
+        },
+        "description": "Update an existing provider"
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Provider",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/providers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["providers", "1"]
+        },
+        "description": "Delete a provider"
+      },
+      "response": []
+    }
+  ]
+}

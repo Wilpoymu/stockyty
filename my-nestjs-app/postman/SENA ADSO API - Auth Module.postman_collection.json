@@ -217,6 +217,37 @@
 				"description": "Send verification email to the authenticated user"
 			},
 			"response": []
+		},
+		{
+			"name": "Logout",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"if (jsonData && jsonData.success) {",
+							"    pm.environment.unset('token');",
+							"    console.log('Token removed from environment');",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": "{{authUrl}}/logout",
+				"description": "Logout current user and invalidate token"
+			},
+			"response": []
 		}
 	],
 	"auth": {
