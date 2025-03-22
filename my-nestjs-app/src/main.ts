@@ -15,7 +15,7 @@ import { ValidationPipe } from '@nestjs/common';
  * @function bootstrap
  */
 async function bootstrap() {
-  await seedRolesIfNotExist()
+  await seedRolesIfNotExist();
   await seedAdminUserIfNotExist();
   await seedPermissionsIfNotExist();
   const app = await NestFactory.create(AppModule);
